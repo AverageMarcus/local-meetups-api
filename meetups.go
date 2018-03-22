@@ -2,17 +2,19 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/fjl/go-couchdb"
+	"github.com/rhinoman/couchdb-go"
 	resty "gopkg.in/resty.v1"
 )
 
-var client, _ = couchdb.NewClient("http://db:5984", nil)
-var db = client.DB("local-meetups")
+var timeout = time.Duration(500 * time.Millisecond)
+var client, _ = couchdb.NewConnection("db", 5984, timeout)
+var db = client.SelectDB("local-meetups", nil)
 
 func buildURL() string {
 	groups := strings.Replace(os.Getenv("GROUP_IDS"), ",", "%2C", -1)
@@ -56,7 +58,7 @@ func fetchMeetups() {
 
 func getSavedMeetup(id string) (MeetupEvent, error) {
 	var meetup = MeetupEvent{}
-	err := db.Get(id, &meetup, nil)
+	_, err := db.Read(id, &meetup, nil)
 	if err != nil {
 		return MeetupEvent{}, err
 	}
@@ -64,26 +66,72 @@ func getSavedMeetup(id string) (MeetupEvent, error) {
 }
 
 func saveMeetup(meetup MeetupEvent) {
-	_, err := db.Put(meetup.ID, meetup, "")
+	_, err := db.Save(meetup, meetup.ID, "")
 	if err != nil {
 		panic(err)
 	}
 }
 
 func hasUpcoming(group string) bool {
-	var meetups = []MeetupEvent{}
-	err := db.AllDocs(&meetups, nil)
+	_, err := getNextMeetupForGroup(group)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+type FindResponse struct {
+	Docs []MeetupEvent `json:"docs"`
+}
+
+func getNextMeetupForGroup(group string) (*MeetupEvent, error) {
+	meetups := FindResponse{}
+
+	params := couchdb.FindQueryParams{
+		Selector: map[string]interface{}{
+			"$and": [2]interface{}{
+				map[string]interface{}{"group.name": group},
+				map[string]interface{}{"time": map[string]interface{}{
+					"$gt": time.Now().Unix() * 1000,
+				}},
+			},
+		},
+		Sort: [1]interface{}{map[string]interface{}{"time": "desc"}},
+	}
+
+	err := db.Find(&meetups, &params)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, meetup := range meetups {
-		if meetup.Group.Name == group || meetup.Group.UrlName == group {
-			if time.Unix(int64(meetup.Time/1000), 0).After(time.Now()) {
-				return true
-			}
-		}
+	if len(meetups.Docs) > 0 {
+		return &meetups.Docs[0], nil
 	}
 
-	return false
+	return nil, errors.New("No upcoming meetup found")
+}
+
+func getNextMeetup() (*MeetupEvent, error) {
+	meetups := FindResponse{}
+
+	params := couchdb.FindQueryParams{
+		Selector: map[string]interface{}{
+			"time": map[string]interface{}{
+				"$gt": time.Now().Unix() * 1000,
+			},
+		},
+		Sort: [1]interface{}{map[string]interface{}{"time": "desc"}},
+	}
+
+	err := db.Find(&meetups, &params)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(meetups.Docs) > 0 {
+		return &meetups.Docs[0], nil
+	}
+
+	return nil, errors.New("No upcoming meetup found")
 }
