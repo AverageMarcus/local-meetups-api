@@ -13,7 +13,7 @@ import (
 )
 
 var timeout = time.Duration(500 * time.Millisecond)
-var client, _ = couchdb.NewConnection("db", 5984, timeout)
+var client, _ = couchdb.NewConnection("local-meetups-api-db", 5984, timeout)
 var db = client.SelectDB("local-meetups", nil)
 
 func buildURL() string {

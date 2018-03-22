@@ -35,9 +35,9 @@ func checkEnv() {
 }
 
 func waitForDB() {
-	err := retry(10, time.Duration(500*time.Millisecond), func() error {
+	err := retry(10, time.Duration(1*time.Second), func() error {
 		timeout := time.Duration(500 * time.Millisecond)
-		_, connectErr := couchdb.NewConnection("db", 5984, timeout)
+		_, connectErr := couchdb.NewConnection("local-meetups-api-db", 5984, timeout)
 		if connectErr != nil {
 			return connectErr
 		}

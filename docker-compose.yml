@@ -14,7 +14,7 @@ services:
       - MEETUP_KEY
     entrypoint: fresh
     links:
-      - db:db
+      - db:local-meetups-api-db
     depends_on:
       - db
   db:
