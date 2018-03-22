@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,7 +14,8 @@ import (
 )
 
 var timeout = time.Duration(500 * time.Millisecond)
-var client, _ = couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), 5984, timeout)
+var port, _ = strconv.Atoi(os.Getenv("COUCHDB_PORT"))
+var client, _ = couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), port, timeout)
 var auth = couchdb.BasicAuth{Username: os.Getenv("COUCHDB_USER"), Password: os.Getenv("COUCHDB_PASSWORD")}
 var db = client.SelectDB("local-meetups", &auth)
 

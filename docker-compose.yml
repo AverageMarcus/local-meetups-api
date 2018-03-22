@@ -13,6 +13,7 @@ services:
       - GROUP_IDS
       - MEETUP_KEY
       - COUCHDB_HOST=local-meetups-api-db
+      - COUCHDB_PORT=5984
       - COUCHDB_USER=admin
       - COUCHDB_PASSWORD=password
     entrypoint: fresh

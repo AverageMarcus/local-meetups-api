@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -42,7 +43,8 @@ func checkEnv() {
 func waitForDB() {
 	err := retry(10, time.Duration(1*time.Second), func() error {
 		timeout := time.Duration(500 * time.Millisecond)
-		client, connectErr := couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), 5984, timeout)
+		port, _ := strconv.Atoi(os.Getenv("COUCHDB_PORT"))
+		client, connectErr := couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), port, timeout)
 		if connectErr != nil {
 			return connectErr
 		}
