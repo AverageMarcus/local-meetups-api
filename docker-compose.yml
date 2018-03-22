@@ -12,6 +12,7 @@ services:
     environment:
       - GROUP_IDS
       - MEETUP_KEY
+      - COUCHDB_HOST=local-meetups-api-db
     entrypoint: fresh
     links:
       - db:local-meetups-api-db

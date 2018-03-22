@@ -29,6 +29,11 @@ func checkEnv() {
 		errors = true
 	}
 
+	if os.Getenv("COUCHDB_HOST") == "" {
+		fmt.Println("No CouchDB HOST specified")
+		errors = true
+	}
+
 	if errors {
 		os.Exit(1)
 	}
@@ -37,7 +42,7 @@ func checkEnv() {
 func waitForDB() {
 	err := retry(10, time.Duration(1*time.Second), func() error {
 		timeout := time.Duration(500 * time.Millisecond)
-		_, connectErr := couchdb.NewConnection("local-meetups-api-db", 5984, timeout)
+		_, connectErr := couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), 5984, timeout)
 		if connectErr != nil {
 			return connectErr
 		}
