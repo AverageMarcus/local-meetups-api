@@ -17,7 +17,7 @@ func router(server *gin.Engine) {
 		group := c.Param("group")
 		meetup, err := getNextMeetupForGroup(group)
 		if err != nil {
-			panic(err)
+			c.JSON(404, "No upcoming meetup found")
 		}
 		fmt.Println("Got meetup: " + meetup.Name)
 		c.JSON(200, meetup)
@@ -26,7 +26,7 @@ func router(server *gin.Engine) {
 	server.GET("/next", func(c *gin.Context) {
 		meetup, err := getNextMeetup()
 		if err != nil {
-			panic(err)
+			c.JSON(404, "No upcoming meetup found")
 		}
 		fmt.Println("Got meetup: " + meetup.Name)
 		c.JSON(200, meetup)
