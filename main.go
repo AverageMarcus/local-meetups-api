@@ -72,6 +72,7 @@ func setupCron() {
 	go fetchMeetups()
 	c := cron.New()
 	c.AddFunc("@every 30m", fetchMeetups)
+	c.AddFunc("@every 5m", cleanupPastMeetups)
 	c.Start()
 }
 

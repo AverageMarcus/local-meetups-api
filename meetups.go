@@ -137,3 +137,30 @@ func getNextMeetup() (*MeetupEvent, error) {
 
 	return nil, errors.New("No upcoming meetup found")
 }
+
+func cleanupPastMeetups() {
+	meetups := FindResponse{}
+
+	params := couchdb.FindQueryParams{
+		Selector: map[string]interface{}{
+			"time": map[string]interface{}{
+				"$lt": time.Now().Unix() * 1000,
+			},
+		},
+	}
+
+	err := db.Find(&meetups, &params)
+	if err != nil {
+		fmt.Println("Failed to cleanup past meetups")
+		return
+	}
+
+	if len(meetups.Docs) > 0 {
+		for _, meetup := range meetups.Docs {
+			_, err := db.Delete(meetup.ID, "")
+			if err != nil {
+				fmt.Println("Failed to remove past meetup: " + meetup.ID)
+			}
+		}
+	}
+}
