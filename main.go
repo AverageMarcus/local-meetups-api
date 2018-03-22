@@ -46,7 +46,8 @@ func waitForDB() {
 		if connectErr != nil {
 			return connectErr
 		}
-		client.SelectDB("local-meetups", nil)
+		auth := couchdb.BasicAuth{Username: os.Getenv("COUCHDB_USER"), Password: os.Getenv("COUCHDB_PASSWORD")}
+		client.SelectDB("local-meetups", &auth)
 		dbErr := db.DbExists()
 		return dbErr
 	})

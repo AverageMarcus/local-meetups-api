@@ -14,7 +14,8 @@ import (
 
 var timeout = time.Duration(500 * time.Millisecond)
 var client, _ = couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), 5984, timeout)
-var db = client.SelectDB("local-meetups", nil)
+var auth = couchdb.BasicAuth{Username: os.Getenv("COUCHDB_USER"), Password: os.Getenv("COUCHDB_PASSWORD")}
+var db = client.SelectDB("local-meetups", &auth)
 
 func buildURL() string {
 	groups := strings.Replace(os.Getenv("GROUP_IDS"), ",", "%2C", -1)
