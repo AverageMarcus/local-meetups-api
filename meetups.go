@@ -91,7 +91,9 @@ func getNextMeetupForGroup(group string) (*MeetupEvent, error) {
 	params := couchdb.FindQueryParams{
 		Selector: map[string]interface{}{
 			"$and": [2]interface{}{
-				map[string]interface{}{"group.name": group},
+				map[string]interface{}{"group.name": map[string]interface{}{
+					"$regex": "(?i)" + group,
+				}},
 				map[string]interface{}{"time": map[string]interface{}{
 					"$gt": time.Now().Unix() * 1000,
 				}},
