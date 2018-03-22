@@ -42,10 +42,11 @@ func checkEnv() {
 func waitForDB() {
 	err := retry(10, time.Duration(1*time.Second), func() error {
 		timeout := time.Duration(500 * time.Millisecond)
-		_, connectErr := couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), 5984, timeout)
+		client, connectErr := couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), 5984, timeout)
 		if connectErr != nil {
 			return connectErr
 		}
+		client.SelectDB("local-meetups", nil)
 		dbErr := db.DbExists()
 		return dbErr
 	})
