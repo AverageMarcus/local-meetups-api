@@ -88,7 +88,7 @@ type FindResponse struct {
 	Docs []MeetupEvent `json:"docs"`
 }
 
-func getNextMeetupForGroup(group string) (*MeetupEvent, error) {
+func getNextMeetupForGroup(group string) (MeetupEvent, error) {
 	meetups := FindResponse{}
 
 	params := couchdb.FindQueryParams{
@@ -110,15 +110,29 @@ func getNextMeetupForGroup(group string) (*MeetupEvent, error) {
 		panic(err)
 	}
 
+	meetup := MeetupEvent{}
+	var notFoundErr error
 	if len(meetups.Docs) > 0 {
-		return &meetups.Docs[0], nil
+		meetup = meetups.Docs[0]
+	} else {
+		notFoundErr = errors.New("No upcoming meetup found")
 	}
 
-	return nil, errors.New("No upcoming meetup found")
+	return meetup, notFoundErr
 }
 
-func getNextMeetup() (*MeetupEvent, error) {
-	meetups := FindResponse{}
+func getNextMeetup() (MeetupEvent, error) {
+	meetup := MeetupEvent{}
+	meetups, err := getAllMeetups()
+	if err == nil && len(meetups) > 0 {
+		meetup = meetups[0]
+	}
+
+	return meetup, err
+}
+
+func getAllMeetups() ([]MeetupEvent, error) {
+	response := FindResponse{}
 
 	params := couchdb.FindQueryParams{
 		Selector: map[string]interface{}{
@@ -129,16 +143,17 @@ func getNextMeetup() (*MeetupEvent, error) {
 		Sort: [1]interface{}{map[string]interface{}{"time": "desc"}},
 	}
 
-	err := db.Find(&meetups, &params)
+	err := db.Find(&response, &params)
 	if err != nil {
 		panic(err)
 	}
 
-	if len(meetups.Docs) > 0 {
-		return &meetups.Docs[0], nil
+	var notFoundError error
+	if len(response.Docs) <= 0 {
+		notFoundError = errors.New("No upcoming meetup found")
 	}
 
-	return nil, errors.New("No upcoming meetup found")
+	return response.Docs, notFoundError
 }
 
 func cleanupPastMeetups() {

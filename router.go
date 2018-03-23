@@ -13,20 +13,31 @@ func router(server *gin.Engine) {
 		})
 	})
 
-	server.GET("/next/:group", func(c *gin.Context) {
-		group := c.Param("group")
-		meetup, err := getNextMeetupForGroup(group)
+	server.GET("/", func(c *gin.Context) {
+		meetups, err := getAllMeetups()
 		if err != nil {
-			c.JSON(404, "No upcoming meetup found")
+			c.JSON(404, "No upcoming meetups found")
+			return
 		}
-		fmt.Println("Got meetup: " + meetup.Name)
-		c.JSON(200, meetup)
+		c.JSON(200, meetups)
 	})
 
 	server.GET("/next", func(c *gin.Context) {
 		meetup, err := getNextMeetup()
 		if err != nil {
 			c.JSON(404, "No upcoming meetup found")
+			return
+		}
+		fmt.Println("Got meetup: " + meetup.Name)
+		c.JSON(200, meetup)
+	})
+
+	server.GET("/next/:group", func(c *gin.Context) {
+		group := c.Param("group")
+		meetup, err := getNextMeetupForGroup(group)
+		if err != nil {
+			c.JSON(404, "No upcoming meetup found")
+			return
 		}
 		fmt.Println("Got meetup: " + meetup.Name)
 		c.JSON(200, meetup)
