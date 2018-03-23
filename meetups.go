@@ -89,6 +89,15 @@ type FindResponse struct {
 }
 
 func getNextMeetupForGroup(group string) (MeetupEvent, error) {
+	meetups, err := getMeetupsForGroup(group)
+	meetup := MeetupEvent{}
+	if len(meetups) > 0 {
+		meetup = meetups[0]
+	}
+	return meetup, err
+}
+
+func getMeetupsForGroup(group string) ([]MeetupEvent, error) {
 	meetups := FindResponse{}
 
 	params := couchdb.FindQueryParams{
@@ -110,15 +119,12 @@ func getNextMeetupForGroup(group string) (MeetupEvent, error) {
 		panic(err)
 	}
 
-	meetup := MeetupEvent{}
 	var notFoundErr error
-	if len(meetups.Docs) > 0 {
-		meetup = meetups.Docs[0]
-	} else {
+	if len(meetups.Docs) <= 0 {
 		notFoundErr = errors.New("No upcoming meetup found")
 	}
 
-	return meetup, notFoundErr
+	return meetups.Docs, notFoundErr
 }
 
 func getNextMeetup() (MeetupEvent, error) {
