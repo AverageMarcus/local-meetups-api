@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,7 +36,6 @@ func router(server *gin.Engine) {
 			c.JSON(404, "No upcoming meetup found")
 			return
 		}
-		fmt.Println("Got meetup: " + meetup.Name)
 		c.JSON(200, meetup)
 	})
 
@@ -49,7 +46,6 @@ func router(server *gin.Engine) {
 			c.JSON(404, "No upcoming meetup found")
 			return
 		}
-		fmt.Println("Got meetup: " + meetup.Name)
 		c.JSON(200, meetup)
 	})
 }
