@@ -89,6 +89,7 @@ func getMeetupsForGroup(group string) ([]MeetupEvent, error) {
 	meetups := FindResponse{}
 
 	params := couchdb.FindQueryParams{
+		Limit: 100,
 		Selector: map[string]interface{}{
 			"$and": [2]interface{}{
 				map[string]interface{}{"group.name": map[string]interface{}{
@@ -129,6 +130,7 @@ func getAllMeetups() ([]MeetupEvent, error) {
 	response := FindResponse{}
 
 	params := couchdb.FindQueryParams{
+		Limit: 1000,
 		Selector: map[string]interface{}{
 			"time": map[string]interface{}{
 				"$gt": time.Now().Unix() * 1000,
@@ -148,6 +150,29 @@ func getAllMeetups() ([]MeetupEvent, error) {
 	}
 
 	return response.Docs, notFoundError
+}
+
+func getAllNextMeetups() ([]MeetupEvent, error) {
+	allMeetups, err := getAllMeetups()
+	if err != nil {
+		return nil, err
+	}
+
+	var meetups = []MeetupEvent{}
+
+	for _, meetup := range allMeetups {
+		var found = false
+		for _, existingMeetup := range meetups {
+			if existingMeetup.Group.Name == meetup.Group.Name {
+				found = true
+			}
+		}
+		if found == false {
+			meetups = append(meetups, meetup)
+		}
+	}
+
+	return meetups, nil
 }
 
 func cleanupPastMeetups() {
