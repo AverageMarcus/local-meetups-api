@@ -72,15 +72,6 @@ func saveMeetup(meetup MeetupEvent) {
 	}
 }
 
-func hasUpcoming(group string) bool {
-	_, err := getNextMeetupForGroup(group)
-	if err != nil {
-		return false
-	}
-
-	return true
-}
-
 type FindResponse struct {
 	Docs []MeetupEvent `json:"docs"`
 }
