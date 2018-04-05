@@ -34,27 +34,24 @@ func fetchMeetups() {
 	json.Unmarshal([]byte(resp.String()), &results)
 
 	for _, meetup := range results.Results {
+		// TODO: Convert meetup to a more friendly type
+
 		// 1. Check for existing meetup saved
 		savedMeetup, err := getSavedMeetup(meetup.ID)
 		if err != nil {
 			fmt.Println(err)
 		}
+		// TODO: Check if meetup has updated since being saved
 		if savedMeetup.Persisted != nil {
 			continue
 		}
 
-		// 2. Check for the next upcoming from the same group
-		if hasUpcoming(meetup.Group.Name) {
-			fmt.Println("We already have an upcoming meetup for '" + meetup.Group.Name + "' so skipping this for now")
-			continue
-		}
-
-		// 3. If none found, save
+		// 2. If not found, save
 		now := time.Now()
 		meetup.Persisted = &now
 		saveMeetup(meetup)
 
-		// TODO: 4. Post to message queue
+		// TODO: 3. Post to message queue
 
 	}
 }
