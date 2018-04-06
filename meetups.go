@@ -18,6 +18,7 @@ var port, _ = strconv.Atoi(os.Getenv("COUCHDB_PORT"))
 var client, _ = couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), port, timeout)
 var auth = couchdb.BasicAuth{Username: os.Getenv("COUCHDB_USER"), Password: os.Getenv("COUCHDB_PASSWORD")}
 var db = client.SelectDB("local-meetups", &auth)
+var JavascriptISOString = "2006-01-02T15:04:05.999Z07:00"
 
 func buildURL() string {
 	groups := strings.Replace(os.Getenv("GROUP_IDS"), ",", "%2C", -1)
@@ -33,22 +34,35 @@ func fetchMeetups() {
 	results := MeetupResponse{}
 	json.Unmarshal([]byte(resp.String()), &results)
 
-	for _, meetup := range results.Results {
-		// TODO: Convert meetup to a more friendly type
+	now := time.Now()
 
-		// 1. Check for existing meetup saved
-		savedMeetup, err := getSavedMeetup(meetup.ID)
-		if err != nil {
-			fmt.Println(err)
-		}
-		// TODO: Check if meetup has updated since being saved
-		if savedMeetup.Persisted != nil {
-			continue
+	for _, meetupEvent := range results.Results {
+		// 1: Convert meetup to a more friendly type
+		meetup := Meetup{
+			ID:          meetupEvent.ID,
+			Title:       meetupEvent.Name,
+			Created:     time.Unix(meetupEvent.Created/1000, 0),
+			Updated:     time.Unix(meetupEvent.Updated/1000, 0),
+			Persisted:   now,
+			Description: meetupEvent.Description,
+			URL:         meetupEvent.EventURL,
+			RsvpCount:   meetupEvent.YesRsvpCount,
+			RsvpLimit:   meetupEvent.RsvpLimit,
+			Time:        time.Unix(meetupEvent.Time/1000, 0),
+			Status:      meetupEvent.Status,
+			Group: MeetupGroup{
+				Name:    meetupEvent.Group.Name,
+				UrlName: meetupEvent.Group.UrlName,
+			},
+			Venue: MeetupVenue{
+				Name:    meetupEvent.Venue.Name,
+				Address: meetupEvent.Venue.Address,
+				City:    meetupEvent.Venue.City,
+				Country: meetupEvent.Venue.Country,
+			},
 		}
 
-		// 2. If not found, save
-		now := time.Now()
-		meetup.Persisted = &now
+		// 2. save
 		saveMeetup(meetup)
 
 		// TODO: 3. Post to message queue
@@ -56,51 +70,48 @@ func fetchMeetups() {
 	}
 }
 
-func getSavedMeetup(id string) (MeetupEvent, error) {
-	var meetup = MeetupEvent{}
-	_, err := db.Read(id, &meetup, nil)
-	if err != nil {
-		return MeetupEvent{}, err
-	}
-	return meetup, nil
-}
-
-func saveMeetup(meetup MeetupEvent) {
-	_, err := db.Save(meetup, meetup.ID, "")
+func saveMeetup(meetup Meetup) {
+	revision := getSavedMeetupRevision(meetup.ID)
+	_, err := db.Save(meetup, meetup.ID, revision)
 	if err != nil {
 		panic(err)
 	}
 }
 
-type FindResponse struct {
-	Docs []MeetupEvent `json:"docs"`
+func getSavedMeetupRevision(id string) string {
+	revision, _ := db.Read(id, &Meetup{}, nil)
+	return revision
 }
 
-func getNextMeetupForGroup(group string) (MeetupEvent, error) {
+type FindResponse struct {
+	Docs []Meetup `json:"docs"`
+}
+
+func getNextMeetupForGroup(group string) (Meetup, error) {
 	meetups, err := getMeetupsForGroup(group)
-	meetup := MeetupEvent{}
+	meetup := Meetup{}
 	if len(meetups) > 0 {
 		meetup = meetups[0]
 	}
 	return meetup, err
 }
 
-func getMeetupsForGroup(group string) ([]MeetupEvent, error) {
+func getMeetupsForGroup(group string) ([]Meetup, error) {
 	meetups := FindResponse{}
 
 	params := couchdb.FindQueryParams{
 		Limit: 100,
 		Selector: map[string]interface{}{
 			"$and": [2]interface{}{
-				map[string]interface{}{"group.name": map[string]interface{}{
+				map[string]interface{}{"Group.Name": map[string]interface{}{
 					"$regex": "(?i)" + group,
 				}},
-				map[string]interface{}{"time": map[string]interface{}{
-					"$gt": time.Now().Unix() * 1000,
+				map[string]interface{}{"Time": map[string]interface{}{
+					"$gt": time.Now().UTC().Format(JavascriptISOString),
 				}},
 			},
 		},
-		Sort: [1]interface{}{map[string]interface{}{"time": "desc"}},
+		Sort: [1]interface{}{map[string]interface{}{"Time": "desc"}},
 	}
 
 	err := db.Find(&meetups, &params)
@@ -116,8 +127,8 @@ func getMeetupsForGroup(group string) ([]MeetupEvent, error) {
 	return meetups.Docs, notFoundErr
 }
 
-func getNextMeetup() (MeetupEvent, error) {
-	meetup := MeetupEvent{}
+func getNextMeetup() (Meetup, error) {
+	meetup := Meetup{}
 	meetups, err := getAllMeetups()
 	if err == nil && len(meetups) > 0 {
 		meetup = meetups[0]
@@ -126,19 +137,19 @@ func getNextMeetup() (MeetupEvent, error) {
 	return meetup, err
 }
 
-func getAllMeetups() ([]MeetupEvent, error) {
+func getAllMeetups() ([]Meetup, error) {
 	response := FindResponse{}
 
 	params := couchdb.FindQueryParams{
 		Limit: 1000,
 		Selector: map[string]interface{}{
-			"time": map[string]interface{}{
-				"$gt": time.Now().Unix() * 1000,
+			"Time": map[string]interface{}{
+				"$gt": time.Now().UTC().Format(JavascriptISOString),
 			},
 		},
-		Sort: [1]interface{}{map[string]interface{}{"time": "desc"}},
+		Sort: [1]interface{}{map[string]interface{}{"Time": "desc"}},
 	}
-
+	fmt.Println(params)
 	err := db.Find(&response, &params)
 	if err != nil {
 		panic(err)
@@ -152,13 +163,13 @@ func getAllMeetups() ([]MeetupEvent, error) {
 	return response.Docs, notFoundError
 }
 
-func getAllNextMeetups() ([]MeetupEvent, error) {
+func getAllNextMeetups() ([]Meetup, error) {
 	allMeetups, err := getAllMeetups()
 	if err != nil {
 		return nil, err
 	}
 
-	var meetups = []MeetupEvent{}
+	var meetups = []Meetup{}
 
 	for _, meetup := range allMeetups {
 		var found = false
@@ -180,8 +191,8 @@ func cleanupPastMeetups() {
 
 	params := couchdb.FindQueryParams{
 		Selector: map[string]interface{}{
-			"time": map[string]interface{}{
-				"$lt": time.Now().Unix() * 1000,
+			"Time": map[string]interface{}{
+				"$lt": time.Now().UTC().Format(JavascriptISOString),
 			},
 		},
 	}

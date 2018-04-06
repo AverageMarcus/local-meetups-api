@@ -22,7 +22,7 @@ func router(server *gin.Engine) {
 
 	server.GET("/upcoming/:group", func(c *gin.Context) {
 		group := c.Param("group")
-		meetups := []MeetupEvent{}
+		meetups := []Meetup{}
 		var err error
 		if group == "all" {
 			meetups, err = getAllMeetups()

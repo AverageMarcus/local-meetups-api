@@ -2,23 +2,51 @@ package main
 
 import "time"
 
-type MeetupEvent struct {
-	ID           string      `json:"id"`
-	Name         string      `json:"name"`
-	Created      int         `json:"created"`
-	Updated      int         `json:"updated"`
-	Description  string      `json:"description"`
-	EventURL     string      `json:"event_url"`
-	RsvpLimit    int         `json:"rsvp_limit"`
-	YesRsvpCount int         `json:"yes_rsvp_count"`
-	Time         int         `json:"time"`
-	Status       string      `json:"status"`
-	Venue        MeetupVenue `json:"venue"`
-	Group        MeetupGroup `json:"group"`
-	Persisted    *time.Time  `json:",omitempty"`
+type Meetup struct {
+	ID          string
+	Title       string
+	Created     time.Time
+	Updated     time.Time
+	Persisted   time.Time
+	Description string
+	URL         string
+	RsvpCount   int
+	RsvpLimit   int
+	Time        time.Time
+	Status      string
+	Group       MeetupGroup
+	Venue       MeetupVenue
+}
+
+type MeetupGroup struct {
+	Name    string
+	UrlName string
 }
 
 type MeetupVenue struct {
+	Name    string
+	Address string
+	City    string
+	Country string
+}
+
+type RawMeetup struct {
+	ID           string         `json:"id"`
+	Name         string         `json:"name"`
+	Created      int64          `json:"created"`
+	Updated      int64          `json:"updated"`
+	Description  string         `json:"description"`
+	EventURL     string         `json:"event_url"`
+	RsvpLimit    int            `json:"rsvp_limit"`
+	YesRsvpCount int            `json:"yes_rsvp_count"`
+	Time         int64          `json:"time"`
+	Status       string         `json:"status"`
+	Venue        RawMeetupVenue `json:"venue"`
+	Group        RawMeetupGroup `json:"group"`
+	Persisted    *time.Time     `json:",omitempty"`
+}
+
+type RawMeetupVenue struct {
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Address string `json:"address_1"`
@@ -26,7 +54,7 @@ type MeetupVenue struct {
 	Country string `json:"country"`
 }
 
-type MeetupGroup struct {
+type RawMeetupGroup struct {
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	UrlName string `json:"urlname"`
@@ -48,6 +76,6 @@ type MeetupMeta struct {
 }
 
 type MeetupResponse struct {
-	Results []MeetupEvent `json:"results"`
-	Meta    MeetupMeta    `json:"meta"`
+	Results []RawMeetup `json:"results"`
+	Meta    MeetupMeta  `json:"meta"`
 }
