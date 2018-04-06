@@ -150,7 +150,6 @@ func getAllMeetups() ([]Meetup, error) {
 		},
 		Sort: [1]interface{}{map[string]interface{}{"Time": "desc"}},
 	}
-	fmt.Println(params)
 	err := db.Find(&response, &params)
 	if err != nil {
 		panic(err)
