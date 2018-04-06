@@ -72,6 +72,7 @@ func fetchMeetups() {
 
 func saveMeetup(meetup Meetup) {
 	revision := getSavedMeetupRevision(meetup.ID)
+	fmt.Println("Updating meetup " + meetup.ID + " - Revision: " + revision)
 	_, err := db.Save(meetup, meetup.ID, revision)
 	if err != nil {
 		panic(err)
