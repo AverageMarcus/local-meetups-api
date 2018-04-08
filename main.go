@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	couchdb "github.com/rhinoman/couchdb-go"
 	"github.com/robfig/cron"
 )
 
@@ -30,8 +28,8 @@ func checkEnv() {
 		errors = true
 	}
 
-	if os.Getenv("COUCHDB_HOST") == "" {
-		fmt.Println("No CouchDB HOST specified")
+	if os.Getenv("MYSQL_USER") != "" && os.Getenv("MYSQL_PASSWORD") == "" || os.Getenv("MYSQL_DATABASE") == "" || os.Getenv("MYSQL_HOST") == "" {
+		fmt.Println("Missing MySQL environment variables")
 		errors = true
 	}
 
@@ -41,22 +39,16 @@ func checkEnv() {
 }
 
 func waitForDB() {
-	err := retry(10, time.Duration(1*time.Second), func() error {
-		timeout := time.Duration(500 * time.Millisecond)
-		port, _ := strconv.Atoi(os.Getenv("COUCHDB_PORT"))
-		client, connectErr := couchdb.NewConnection(os.Getenv("COUCHDB_HOST"), port, timeout)
-		if connectErr != nil {
-			return connectErr
+	if err := retry(10, time.Duration(1*time.Second), func() error {
+		db, err := getDB()
+		if err != nil {
+			return err
 		}
-		auth := couchdb.BasicAuth{Username: os.Getenv("COUCHDB_USER"), Password: os.Getenv("COUCHDB_PASSWORD")}
-		client.SelectDB("local-meetups", &auth)
-		dbErr := db.DbExists()
-		return dbErr
-	})
-
-	if err != nil {
+		return db.Ping()
+	}); err != nil {
 		panic(err)
 	}
+	fmt.Println("Database is up and ready")
 }
 
 func retry(attempts int, sleep time.Duration, fn func() error) (err error) {
@@ -71,7 +63,6 @@ func retry(attempts int, sleep time.Duration, fn func() error) (err error) {
 		}
 
 		time.Sleep(sleep)
-
 		fmt.Println("Retrying...")
 	}
 	return fmt.Errorf("After %d attempts, last error: %s", attempts, err)
@@ -81,7 +72,6 @@ func setupCron() {
 	go fetchMeetups()
 	c := cron.New()
 	c.AddFunc("@every 30m", fetchMeetups)
-	c.AddFunc("@every 5m", cleanupPastMeetups)
 	c.Start()
 }
 
