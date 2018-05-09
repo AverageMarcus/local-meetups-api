@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -43,6 +44,10 @@ func getDB() (*sql.DB, error) {
 
 func hydrateRows(rows *sql.Rows) ([]Meetup, error) {
 	var meetups []Meetup
+
+	if !rows.Next() {
+		return nil, fmt.Errorf("No meetups returned")
+	}
 
 	for rows.Next() {
 		var meetup Meetup
