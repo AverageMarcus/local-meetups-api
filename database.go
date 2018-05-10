@@ -45,11 +45,14 @@ func getDB() (*sql.DB, error) {
 func hydrateRows(rows *sql.Rows) ([]Meetup, error) {
 	var meetups []Meetup
 
-	if !rows.Next() {
-		return nil, fmt.Errorf("No meetups returned")
-	}
+	for {
+		hasNext := rows.Next()
+		if !hasNext && len(meetups) == 0 {
+			return nil, fmt.Errorf("No meetups returned")
+		} else if !hasNext {
+			break
+		}
 
-	for rows.Next() {
 		var meetup Meetup
 		var created, updated, persisted, meetupTime string
 		if err := rows.Scan(
