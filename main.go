@@ -12,6 +12,7 @@ import (
 func main() {
 	checkEnv()
 	waitForDB()
+	waitForPubSub()
 	setupCron()
 	setupServer()
 }
@@ -39,7 +40,9 @@ func checkEnv() {
 }
 
 func waitForDB() {
-	if err := retry(10, time.Duration(1*time.Second), func() error {
+	waitTime := 1 * time.Second
+	if err := retry(10, time.Duration(waitTime), func() error {
+		waitTime = waitTime * 2
 		db, err := getDB()
 		if err != nil {
 			return err
@@ -49,6 +52,27 @@ func waitForDB() {
 		panic(err)
 	}
 	fmt.Println("Database is up and ready")
+}
+
+func waitForPubSub() {
+	waitTime := 1 * time.Second
+	if err := retry(10, time.Duration(waitTime), func() error {
+		waitTime = waitTime * 2
+		conn, err := getPubSub()
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		ch, err := conn.Channel()
+		if err != nil {
+			return err
+		}
+		defer ch.Close()
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+	fmt.Println("PubSub is up and ready")
 }
 
 func retry(attempts int, sleep time.Duration, fn func() error) (err error) {

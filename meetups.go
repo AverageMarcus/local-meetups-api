@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
+
 	resty "gopkg.in/resty.v1"
 )
 
@@ -50,21 +52,28 @@ func fetchMeetups() {
 				City:    meetupEvent.Venue.City,
 				Country: meetupEvent.Venue.Country,
 			},
+			Announced: mysql.NullTime{},
 		}
 
 		// 2. get existing meetup
 		existingMeetup, err := getMeetup(meetup.ID)
 		isNew := err != nil || &existingMeetup.Persisted == nil
 		isUpdate := !isNew && !existingMeetup.Updated.Equal(meetup.Updated)
+		_, noUpcoming := getNextMeetupForGroup(meetup.Group.Name)
 
-		// 3. save
-		if isNew || isUpdate {
-			go saveMeetup(meetup)
+		// 3. Post to message queue
+
+		if !meetup.Announced.Valid && noUpcoming != nil {
+			meetup.Announced = mysql.NullTime{
+				Time:  now,
+				Valid: true,
+			}
+			go publish(meetup)
 		}
 
-		// 4. Post to message queue
-		if isNew {
-			// TODO: Post to message queue
+		// 4. save
+		if isNew || isUpdate {
+			go saveMeetup(meetup)
 		}
 	}
 }
@@ -74,18 +83,24 @@ func saveMeetup(meetup Meetup) {
 	if err != nil {
 		panic(err.Error())
 	}
-	stmtIns, err := db.Prepare("INSERT INTO meetup VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE ID = values(ID), Title = values(Title), Created = values(Created), Updated = values(Updated), Persisted = values(Persisted), Description = values(Description), URL = values(URL), RsvpCount = values(RsvpCount), RsvpLimit = values(RsvpLimit), Time = values(Time), Status = values(Status), GroupName = values(GroupName), GroupUrlName = values(GroupUrlName), VenueName = values(VenueName), VenueAddress = values(VenueAddress), VenueCity = values(VenueCity), VenueCountry = values(VenueCountry)")
+	stmtIns, err := db.Prepare("INSERT INTO meetup VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE ID = values(ID), Title = values(Title), Created = values(Created), Updated = values(Updated), Persisted = values(Persisted), Description = values(Description), URL = values(URL), RsvpCount = values(RsvpCount), RsvpLimit = values(RsvpLimit), Time = values(Time), Status = values(Status), GroupName = values(GroupName), GroupUrlName = values(GroupUrlName), VenueName = values(VenueName), VenueAddress = values(VenueAddress), VenueCity = values(VenueCity), VenueCountry = values(VenueCountry), Announced = values(Announced)")
 	if err != nil {
 		panic(err.Error())
 	}
 	defer stmtIns.Close()
 
-	fmt.Println("Saving " + meetup.Group.Name + " - " + meetup.Title + " (Last updated: " + meetup.Updated.Format(JavascriptISOString) + ")")
+	fmt.Println("Saving " + meetup.Group.Name + " - " + meetup.Title + " - " + meetup.Time.Format(JavascriptISOString) + " (Last updated: " + meetup.Updated.Format(JavascriptISOString) + ")")
+
+	announcedTime := ""
+	if meetup.Announced.Valid {
+		announcedTime = meetup.Announced.Time.Format(JavascriptISOString)
+	}
+
 	_, err = stmtIns.Exec(
 		meetup.ID, meetup.Title, meetup.Created.Format(JavascriptISOString), meetup.Updated.Format(JavascriptISOString), meetup.Persisted.Format(JavascriptISOString),
 		meetup.Description, meetup.URL, meetup.RsvpCount, meetup.RsvpLimit, meetup.Time.Format(JavascriptISOString),
 		meetup.Status, meetup.Group.Name, meetup.Group.UrlName, meetup.Venue.Name,
-		meetup.Venue.Address, meetup.Venue.City, meetup.Venue.Country,
+		meetup.Venue.Address, meetup.Venue.City, meetup.Venue.Country, announcedTime,
 	)
 	if err != nil {
 		panic(err.Error())

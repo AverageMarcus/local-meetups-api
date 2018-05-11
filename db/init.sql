@@ -17,6 +17,7 @@ CREATE TABLE meetup (
   VenueAddress TEXT CHARACTER SET utf8mb4,
   VenueCity VARCHAR(500) CHARACTER SET utf8mb4,
   VenueCountry VARCHAR(500) CHARACTER SET utf8mb4,
+	Announced VARCHAR(100) CHARACTER SET utf8mb4,
   PRIMARY KEY(ID)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 CREATE INDEX meetup_time ON meetup (Time);

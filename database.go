@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -54,12 +56,12 @@ func hydrateRows(rows *sql.Rows) ([]Meetup, error) {
 		}
 
 		var meetup Meetup
-		var created, updated, persisted, meetupTime string
+		var created, updated, persisted, meetupTime, announced string
 		if err := rows.Scan(
 			&meetup.ID, &meetup.Title, &created, &updated, &persisted,
 			&meetup.Description, &meetup.URL, &meetup.RsvpCount, &meetup.RsvpLimit, &meetupTime,
 			&meetup.Status, &meetup.Group.Name, &meetup.Group.UrlName, &meetup.Venue.Name,
-			&meetup.Venue.Address, &meetup.Venue.City, &meetup.Venue.Country,
+			&meetup.Venue.Address, &meetup.Venue.City, &meetup.Venue.Country, &announced,
 		); err != nil {
 			return nil, err
 		}
@@ -67,6 +69,15 @@ func hydrateRows(rows *sql.Rows) ([]Meetup, error) {
 		meetup.Updated, _ = time.Parse(JavascriptISOString, updated)
 		meetup.Persisted, _ = time.Parse(JavascriptISOString, persisted)
 		meetup.Time, _ = time.Parse(JavascriptISOString, meetupTime)
+		if announced != "" {
+			announcedTime, _ := time.Parse(JavascriptISOString, announced)
+			meetup.Announced = mysql.NullTime{
+				Time:  announcedTime,
+				Valid: true,
+			}
+		} else {
+			meetup.Announced = mysql.NullTime{}
+		}
 		meetups = append(meetups, meetup)
 	}
 

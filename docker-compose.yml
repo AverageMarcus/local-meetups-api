@@ -16,11 +16,15 @@ services:
       - MYSQL_PASSWORD=password
       - MYSQL_DATABASE=localmeetups
       - MYSQL_HOST=local-meetups-api-db
+      - PUBSUB_USER=guest
+      - PUBSUB_PASSWORD=guest
     entrypoint: fresh
     links:
       - db:local-meetups-api-db
+      - messaging:local-meetups-api-mssaging
     depends_on:
       - db
+      - messaging
   db:
     image: mysql:5
     environment:
@@ -32,3 +36,8 @@ services:
       - ./db:/docker-entrypoint-initdb.d
     ports:
       - "5000:3306"
+  messaging:
+    image: rabbitmq:3-management
+    hostname: messaging
+    ports:
+      - "15672:15672"

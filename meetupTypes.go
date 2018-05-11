@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/go-sql-driver/mysql"
+)
 
 type Meetup struct {
 	ID          string
@@ -16,6 +20,7 @@ type Meetup struct {
 	Status      string
 	Group       MeetupGroup
 	Venue       MeetupVenue
+	Announced   mysql.NullTime
 }
 
 type MeetupGroup struct {
