@@ -21,7 +21,7 @@ services:
     entrypoint: fresh
     links:
       - db:local-meetups-api-db
-      - messaging:local-meetups-api-mssaging
+      - messaging:local-meetups-api-messaging
     depends_on:
       - db
       - messaging

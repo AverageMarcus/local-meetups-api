@@ -9,7 +9,7 @@ import (
 )
 
 func getPubSub() (*amqp.Connection, error) {
-	return amqp.Dial("amqp://" + os.Getenv("PUBSUB_USER") + ":" + os.Getenv("PUBSUB_PASSWORD") + "@local-meetups-api-mssaging:5672/")
+	return amqp.Dial("amqp://" + os.Getenv("PUBSUB_USER") + ":" + os.Getenv("PUBSUB_PASSWORD") + "@local-meetups-api-messaging:5672/")
 }
 
 func publish(meetup Meetup) {
