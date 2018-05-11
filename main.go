@@ -62,12 +62,7 @@ func waitForPubSub() {
 		if err != nil {
 			return err
 		}
-		defer conn.Close()
-		ch, err := conn.Channel()
-		if err != nil {
-			return err
-		}
-		defer ch.Close()
+		defer conn.Disconnect()
 		return nil
 	}); err != nil {
 		panic(err)

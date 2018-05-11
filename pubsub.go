@@ -5,40 +5,27 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/streadway/amqp"
+	"github.com/go-stomp/stomp"
 )
 
-func getPubSub() (*amqp.Connection, error) {
-	return amqp.Dial("amqp://" + os.Getenv("PUBSUB_USER") + ":" + os.Getenv("PUBSUB_PASSWORD") + "@local-meetups-api-messaging:5672/")
+func getPubSub() (*stomp.Conn, error) {
+	conn, err := stomp.Dial(
+		"tcp",
+		"local-meetups-api-messaging:61613",
+		stomp.ConnOpt.Login(os.Getenv("PUBSUB_USER"), os.Getenv("PUBSUB_PASSWORD")),
+	)
+	return conn, err
 }
 
 func publish(meetup Meetup) {
+	fmt.Println("Announcing " + meetup.Group.Name + " - " + meetup.Title)
 	conn, _ := getPubSub()
-	defer conn.Close()
-	ch, _ := conn.Channel()
-	defer ch.Close()
-
-	ch.ExchangeDeclare(
-		"meetup-announcement",
-		"topic",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
+	defer conn.Disconnect()
 
 	body, _ := json.Marshal(meetup)
-
-	fmt.Println("Announcing " + meetup.Group.Name + " - " + meetup.Title)
-
-	ch.Publish(
-		"meetup-announcement",
-		"",
-		false,
-		false,
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(body),
-		})
+	conn.Send(
+		"/topic/meetup-announcement",
+		"application/json",
+		body,
+	)
 }

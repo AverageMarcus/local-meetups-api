@@ -16,8 +16,8 @@ services:
       - MYSQL_PASSWORD=password
       - MYSQL_DATABASE=localmeetups
       - MYSQL_HOST=local-meetups-api-db
-      - PUBSUB_USER=guest
-      - PUBSUB_PASSWORD=guest
+      - PUBSUB_USER=admin
+      - PUBSUB_PASSWORD=admin
     entrypoint: fresh
     links:
       - db:local-meetups-api-db
@@ -37,7 +37,9 @@ services:
     ports:
       - "5000:3306"
   messaging:
-    image: rabbitmq:3-management
-    hostname: messaging
+    image: webcenter/activemq
+    environment:
+      - ACTIVEMQ_ADMIN_LOGIN=admin
+      - ACTIVEMQ_ADMIN_PASSWORD=admin
     ports:
-      - "15672:15672"
+     - "8161:8161"
