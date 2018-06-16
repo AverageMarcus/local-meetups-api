@@ -27,6 +27,8 @@ func router(server *gin.Engine) {
 		c.Writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		c.Writer.Header().Set("Pragma", "no-cache")
 		c.Writer.Header().Set("Expires", "0")
+		c.Writer.Header().Set("access-control-allow-origin", "*")
+		c.Writer.Header().Set("access-control-allow-headers", "Origin, X-Requested-With, Content-Type, Accept, authorization")
 
 		c.Next()
 	})
